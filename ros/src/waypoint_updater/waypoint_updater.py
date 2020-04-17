@@ -44,7 +44,7 @@ class WaypointUpdater(object):
         self.pose = None
         self.base_waypoints_2d_tree = None
 
-        rospy.spin()
+        self.run()  # program will stay here forever
 
     def pose_cb(self, msg):
         self.pose = msg
@@ -60,6 +60,15 @@ class WaypointUpdater(object):
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
+
+    def run(self):
+        """
+        The program will stay here forever
+        """
+        r = rospy.Rate(50)
+        while not rospy.is_shutdown():
+            pass # here we do the processing
+            r.sleep()
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
