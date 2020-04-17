@@ -54,7 +54,7 @@ class WaypointUpdater(object):
         self.pose = msg
 
     def waypoints_cb(self, waypoints):
-        self.base_waypoints = waypoints.waypoints   # get rid of the header
+        self.base_waypoints = waypoints
         self.base_waypoints_2d_tree = KDTree([[wp.pose.pose.position.x wp.pose.pose.position.y] for wp in waypoints.waypoints])  # tree taken from the video
 
     def traffic_cb(self, msg):
