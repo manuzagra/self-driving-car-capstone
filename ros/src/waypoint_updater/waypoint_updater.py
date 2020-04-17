@@ -3,8 +3,11 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 
 import math
+
+from scipy.spatial import KDTree
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -30,23 +33,25 @@ class WaypointUpdater(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        # TODO done: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        # rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)  # this is Int32 for sure
+        #rospy.Subscriber('/obstacle_waypoint', Lane, self.obstacle_cb)  # no idea of this type
 
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
+        self.pose = None
+        self.base_waypoints_2d_tree = None
 
         rospy.spin()
 
     def pose_cb(self, msg):
-        # TODO: Implement
-        pass
+        self.pose = msg
 
     def waypoints_cb(self, waypoints):
-        # TODO: Implement
-        pass
+        self.base_waypoints = waypoints.waypoints   # get rid of the header
+        self.base_waypoints_2d_tree = KDTree([[wp.pose.pose.position.x wp.pose.pose.position.y] for wp in waypoints.waypoints])  # tree taken from the video
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
