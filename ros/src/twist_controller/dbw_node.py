@@ -57,9 +57,13 @@ class DBWNode(object):
         self.controller = Controller()
 
         self.dbw_enabled = False
+        self.current_velocity = None
+        self.twist_cmd = None
 
         # TODO: Subscribe to all the topics you need to
-        rospy.Subscriber('/vehicle/dbw_enabled', Bool)
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb, queue_size=1)
+        rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb, queue_size=1)
 
         self.loop()
 
@@ -68,6 +72,12 @@ class DBWNode(object):
         if msg.data and not self.dbw_enabled:
             # TODO reset the integral error in the controller
         self.dbw_enabled = msg.data
+
+    def current_velocity_cb(self, msg):
+        self.current_velocity = msg.twist
+
+    def twist_cmd_cb(self, msg):
+        self.twist_cmd = msg.twist
 
 
     def loop(self):
