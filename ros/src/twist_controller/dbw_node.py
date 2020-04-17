@@ -47,11 +47,20 @@ class DBWNode(object):
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
 
         # Controller
-        self.controller = Controller()
+        # numbers are invented
+        controller_params = {'kp': 1, 'ki': 0.001, 'kd': 1.5,
+                             'wheel_base': wheel_base,
+                             'steer_ratio': steer_ratio,
+                             'min_speed': 10,
+                             'max_lat_accel': max_lat_accel,
+                             'max_steer_angle': max_steer_angle,
+                             'tau': 0.1, 'ts': 0.2}
+
+        self.controller = Controller(**controller_params)
 
         # properties
         self.dbw_enabled = False
-        self.current_velocity = None
+        self.last_velocity = None
         self.twist_cmd = None
 
         # Publishers
@@ -74,7 +83,7 @@ class DBWNode(object):
         self.dbw_enabled = msg.data
 
     def current_velocity_cb(self, msg):
-        self.current_velocity = msg.twist
+        self.last_velocity = msg.twist
 
     def twist_cmd_cb(self, msg):
         self.twist_cmd = msg.twist
@@ -83,7 +92,7 @@ class DBWNode(object):
     def loop(self):
         rate = rospy.Rate(50) # 50Hz
         while not rospy.is_shutdown():
-            throttle, brake, steering = self.controller.control() #<proposed linear velocity>, <proposed angular velocity>, <current linear velocity>, <dbw status>, <any other argument you need>)
+            throttle, brake, steering = self.controller.control(self.twist_cmd, self.last_velocity) 
             if self.dbw_enabled:
                self.publish(throttle, brake, steer)
             rate.sleep()
