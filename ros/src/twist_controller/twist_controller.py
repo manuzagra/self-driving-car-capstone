@@ -22,6 +22,18 @@ class Controller(object):
         self.pid.reset()
         self.low_pass_filter.reset()
 
-    def control(self, *args, **kwargs):
-        # Return throttle, brake, steer
-        return 1., 0., 0.
+    def control(self, reference, measured):
+        # TwistStamped
+        error_vel = reference.linear.x - measured.linear.x
+        vel_control = self.pid(error_vel)
+        # TODO probably this is not tthe correct way
+        if vel_control > 0:
+            throttle = vel_control
+            brake = 0.
+        else:
+            throttle = 0.
+            brake = -1*vel_control
+
+        steer = self.yaw_controlget_steering(reference.linear.x, reference.angular.z, measured.linear.x)
+        steer = self.low_pass_filter(steer)
+        return throttle, brake, steer
