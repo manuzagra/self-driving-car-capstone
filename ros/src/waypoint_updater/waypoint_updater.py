@@ -4,6 +4,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 from std_msgs.msg import Int32
+import tf
 
 import math
 
@@ -29,6 +30,13 @@ LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this n
 
 class WaypointUpdater(object):
     def __init__(self):
+
+        ##### member variables
+        # they are first to ensure they exist before any callback is called
+        self.pose = None
+        self.base_waypoints_2d_tree = None
+
+        ##### ROS stuff
         rospy.init_node('waypoint_updater')
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
@@ -37,12 +45,8 @@ class WaypointUpdater(object):
         # rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)  # this is Int32 for sure
         #rospy.Subscriber('/obstacle_waypoint', Lane, self.obstacle_cb)  # no idea of this type
 
-
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        # TODO: Add other member variables you need below
-        self.pose = None
-        self.base_waypoints_2d_tree = None
 
         self.run()  # program will stay here forever
 
@@ -69,6 +73,33 @@ class WaypointUpdater(object):
         while not rospy.is_shutdown():
             pass # here we do the processing
             r.sleep()
+
+    def next_waypoint_index(self):
+        """
+        It returns the next waypoint from the base_waypoints.
+        """
+        # get the index of the closest waypoint
+        x = self.pose.pose.position.x
+        y = self.pose.pose.position.y
+        closest_idx = self.base_waypoints_2d_tree.query([x, y], 1)[1] # [0] is the position
+
+        # check if the closest wp is ahead or behind the car
+        closest_wp = self.base_waypoints[closest_idx]
+        before_closest_wp = self.base_waypoints[closest_idx-1]
+
+        # TODO this supposse the car is alway travelling in ascending ondex of wps
+        # I am going to check with distances
+        distance = lambda p1, p2: math.sqrt((p1.position.x-p2.position.x)**2 + (p1.position.y-p2.position.y)**2)
+        closest_wp_dist = distance(closest_wp, before_closest_wp)
+        pose_dist = distance(self.pose, before_closest_wp)
+
+        ###    before_closest_wp   car   closest_wp
+        next_waypoint_idx = closest_idx
+        if (pose_dist > closest_wp_dist):
+            ###    before_closest_wp   closest_wp   car   after_closest_wp
+            next_waypoint_idx += 1
+        return next_waypoint_idx
+
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
