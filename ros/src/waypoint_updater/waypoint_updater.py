@@ -4,10 +4,10 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 from std_msgs.msg import Int32
-import tf
 
 import math
 
+import numpy as np
 from scipy.spatial import KDTree
 
 '''
@@ -83,23 +83,22 @@ class WaypointUpdater(object):
         y = self.pose.pose.position.y
         closest_idx = self.base_waypoints_2d_tree.query([x, y], 1)[1] # [0] is the position
 
-        # check if the closest wp is ahead or behind the car
-        closest_wp = self.base_waypoints[closest_idx]
-        before_closest_wp = self.base_waypoints[closest_idx-1]
+        # get the coordinates of the closest, the previous of the closest wp and the pose
+        closest_coord = np.array([self.base_waypoints.waypoints.[closest_idx].pose.pose.position.x, self.base_waypoints.waypoints.[closest_idx].pose.pose.position.y])
+        prev_coord = np.array([self.base_waypoints.waypoints.[closest_idx-1].pose.pose.position.x, self.base_waypoints.waypoints.[closest_idx-1].pose.pose.position.y])
+        pose_coord = np.array([self.pose.position.x, self.pose.position.y])
 
-        # TODO this supposse the car is alway travelling in ascending ondex of wps
-        # I am going to check with distances
-        distance = lambda p1, p2: math.sqrt((p1.position.x-p2.position.x)**2 + (p1.position.y-p2.position.y)**2)
-        closest_wp_dist = distance(closest_wp, before_closest_wp)
-        pose_dist = distance(self.pose, before_closest_wp)
+        # I dont really understand the maths explained in the video,
+        # it is a bit complicated way to do a simple thing, but they use it so...
+        # the best way to understand it is to thing in terms of angles,
+        # if angle between vectors > 90º -> dot product < 0
+        # if angle between vectors < 90º -> dot product > 0
+        val = np.dot(closest_coord-prev_coord, pose_coord-closest_coord)
 
-        ###    before_closest_wp   car   closest_wp
         next_waypoint_idx = closest_idx
-        if (pose_dist > closest_wp_dist):
-            ###    before_closest_wp   closest_wp   car   after_closest_wp
-            next_waypoint_idx += 1
+        if val > 0:
+            next_waypoint_idx = (next_waypoint_idx + 1) % len(self.base_waypoints.waypoints)
         return next_waypoint_idx
-
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
