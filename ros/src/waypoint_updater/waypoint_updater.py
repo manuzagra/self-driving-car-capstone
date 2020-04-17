@@ -69,9 +69,15 @@ class WaypointUpdater(object):
         """
         The program will stay here forever
         """
+        # do not run enything till the moment we have messages
+        rospy.wait_for_message('/base_waypoints', Lane)
+        rospy.wait_for_message('/current_pose', PoseStamped)
+        
         r = rospy.Rate(50)
         while not rospy.is_shutdown():
-            pass # here we do the processing
+            next_wp_idx = self.next_waypoint_index()
+            lane = self.get_lane(next_wp_idx, next_wp_idx+LOOKAHEAD_WPS)
+            self.final_waypoints_pub.publish(lane)
             r.sleep()
 
     def next_waypoint_index(self):
@@ -99,6 +105,12 @@ class WaypointUpdater(object):
         if val > 0:
             next_waypoint_idx = (next_waypoint_idx + 1) % len(self.base_waypoints.waypoints)
         return next_waypoint_idx
+
+    def get_lane(self, from, to):
+        lane = Lane()
+        lane.header = self.base_waypoints.header
+        lane.waypoints = self.base_waypoints.waypoints[from:to]
+        return lane
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
