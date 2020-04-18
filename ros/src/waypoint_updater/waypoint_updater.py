@@ -55,7 +55,7 @@ class WaypointUpdater(object):
 
     def waypoints_cb(self, waypoints):
         self.base_waypoints = waypoints
-        self.base_waypoints_2d_tree = KDTree([[wp.pose.pose.position.x wp.pose.pose.position.y] for wp in waypoints.waypoints])  # tree taken from the video
+        self.base_waypoints_2d_tree = KDTree([[wp.pose.pose.position.x, wp.pose.pose.position.y] for wp in waypoints.waypoints])  # tree taken from the video
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
@@ -72,7 +72,7 @@ class WaypointUpdater(object):
         # do not run enything till the moment we have messages
         rospy.wait_for_message('/base_waypoints', Lane)
         rospy.wait_for_message('/current_pose', PoseStamped)
-        
+
         r = rospy.Rate(50)
         while not rospy.is_shutdown():
             next_wp_idx = self.next_waypoint_index()
@@ -90,15 +90,15 @@ class WaypointUpdater(object):
         closest_idx = self.base_waypoints_2d_tree.query([x, y], 1)[1] # [0] is the position
 
         # get the coordinates of the closest, the previous of the closest wp and the pose
-        closest_coord = np.array([self.base_waypoints.waypoints.[closest_idx].pose.pose.position.x, self.base_waypoints.waypoints.[closest_idx].pose.pose.position.y])
-        prev_coord = np.array([self.base_waypoints.waypoints.[closest_idx-1].pose.pose.position.x, self.base_waypoints.waypoints.[closest_idx-1].pose.pose.position.y])
-        pose_coord = np.array([self.pose.position.x, self.pose.position.y])
+        closest_coord = np.array([self.base_waypoints.waypoints[closest_idx].pose.pose.position.x, self.base_waypoints.waypoints[closest_idx].pose.pose.position.y])
+        prev_coord = np.array([self.base_waypoints.waypoints[closest_idx-1].pose.pose.position.x, self.base_waypoints.waypoints[closest_idx-1].pose.pose.position.y])
+        pose_coord = np.array([self.pose.pose.position.x, self.pose.pose.position.y])
 
         # I dont really understand the maths explained in the video,
         # it is a bit complicated way to do a simple thing, but they use it so...
         # the best way to understand it is to thing in terms of angles,
-        # if angle between vectors > 90º -> dot product < 0
-        # if angle between vectors < 90º -> dot product > 0
+        # if angle between vectors > 90 -> dot product < 0
+        # if angle between vectors < 90 -> dot product > 0
         val = np.dot(closest_coord-prev_coord, pose_coord-closest_coord)
 
         next_waypoint_idx = closest_idx
@@ -106,10 +106,10 @@ class WaypointUpdater(object):
             next_waypoint_idx = (next_waypoint_idx + 1) % len(self.base_waypoints.waypoints)
         return next_waypoint_idx
 
-    def get_lane(self, from, to):
+    def get_lane(self, from_idx, to_idx):
         lane = Lane()
         lane.header = self.base_waypoints.header
-        lane.waypoints = self.base_waypoints.waypoints[from:to]
+        lane.waypoints = self.base_waypoints.waypoints[from_idx:to_idx]
         return lane
 
     def get_waypoint_velocity(self, waypoint):

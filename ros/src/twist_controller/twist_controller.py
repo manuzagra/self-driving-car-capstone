@@ -8,7 +8,7 @@ ONE_MPH = 0.44704
 
 class Controller(object):
     def __init__(self, *args, **kwargs):
-        self.pid = PID(['kp'], ['ki'], ['kd']) #, mn, mx) these numvers are for the saturation
+        self.pid = PID(kwargs['kp'], kwargs['ki'], kwargs['kd']) #, mn, mx) these numvers are for the saturation
 
         self.yaw_control = YawController(kwargs['wheel_base'],
                                          kwargs['steer_ratio'],
@@ -16,7 +16,10 @@ class Controller(object):
                                          kwargs['max_lat_accel'],
                                          kwargs['max_steer_angle'])
 
-        self.low_pass_filter = LowPassFilter(['tau'], ['ts'])
+        self.low_pass_filter = LowPassFilter(kwargs['tau'], kwargs['ts'])
+
+        self.vehicle_mass = kwargs['vehicle_mass']
+        self.wheel_radius = kwargs['wheel_radius']
 
     def reset(self):
         self.pid.reset()
@@ -25,15 +28,19 @@ class Controller(object):
     def control(self, reference, measured):
         # TwistStamped
         error_vel = reference.linear.x - measured.linear.x
-        vel_control = self.pid(error_vel)
+        vel_control = self.pid.step(error_vel)
         # TODO probably this is not tthe correct way
-        if vel_control > 0:
-            throttle = vel_control
+        if vel_control > 0.1:
+            throttle = min(vel_control, 0.5)
             brake = 0.
-        else:
+        elif vel_control < 0.1:
             throttle = 0.
-            brake = -1*vel_control
+            brake = -1*vel_control * self.vehicle_mass * self.wheel_radius
+        elif reference.linear.x < 0.1:
+            throttle = 0.
+            brake = 700
 
-        steer = self.yaw_controlget_steering(reference.linear.x, reference.angular.z, measured.linear.x)
-        steer = self.low_pass_filter(steer)
+
+        steer = self.yaw_control.get_steering(reference.linear.x, reference.angular.z, measured.linear.x)
+        #steer = self.low_pass_filter.filt(steer)
         return throttle, brake, steer

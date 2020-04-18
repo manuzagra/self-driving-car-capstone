@@ -50,11 +50,13 @@ class DBWNode(object):
         # numbers are invented
         controller_params = {'kp': 1, 'ki': 0.001, 'kd': 1.5,
                              'wheel_base': wheel_base,
+                             'wheel_radius': wheel_radius,
                              'steer_ratio': steer_ratio,
                              'min_speed': 10,
                              'max_lat_accel': max_lat_accel,
                              'max_steer_angle': max_steer_angle,
-                             'tau': 0.1, 'ts': 0.2}
+                             'tau': 0.5, 'ts': 0.02,
+                             'vehicle_mass': vehicle_mass}
 
         self.controller = Controller(**controller_params)
 
@@ -77,9 +79,6 @@ class DBWNode(object):
         self.loop()
 
     def dbw_enabled_cb(self, msg):
-        # if dbw is activated we have to be careful with the accumulated error
-        if msg.data and not self.dbw_enabled:
-            # TODO reset the integral error in the controller
         self.dbw_enabled = msg.data
 
     def current_velocity_cb(self, msg):
@@ -90,11 +89,27 @@ class DBWNode(object):
 
 
     def loop(self):
+
+        rospy.wait_for_message('/vehicle/dbw_enabled', Bool)
+        rospy.wait_for_message('/current_velocity', TwistStamped)
+        rospy.wait_for_message('/twist_cmd', TwistStamped)
+
         rate = rospy.Rate(50) # 50Hz
         while not rospy.is_shutdown():
-            throttle, brake, steering = self.controller.control(self.twist_cmd, self.last_velocity) 
             if self.dbw_enabled:
+               throttle, brake, steer = self.controller.control(self.twist_cmd, self.last_velocity)
                self.publish(throttle, brake, steer)
+
+               print('---------------------')
+               print(self.twist_cmd)
+               print(self.last_velocity)
+               print('---------------------')
+               print(throttle)
+               print(brake)
+               print(steer)
+               print('---------------------')
+            else:
+               self.controller.reset()
             rate.sleep()
 
     def publish(self, throttle, brake, steer):

@@ -12,14 +12,14 @@ class PID(object):
         self.max = mx
 
         self.int_val = self.last_error = 0.
-        self.lase_t = time.time_ns() / 1000000000.
+        self.last_t = time.time() / 1000000000.
 
     def reset(self):
         self.int_val = 0.0
-        self.lase_t = time.time_ns() / 1000000000.
+        self.last_t = time.time() / 1000000000.
 
     def step(self, error):
-        t = time.time_ns() / 1000000000.
+        t = time.time() / 1000000000.
         dt = t - self.last_t
         self.last_t = t
 
