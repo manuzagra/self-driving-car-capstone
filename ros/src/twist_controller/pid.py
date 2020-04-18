@@ -1,4 +1,4 @@
-import time
+
 MIN_NUM = float('-inf')
 MAX_NUM = float('inf')
 
@@ -12,19 +12,14 @@ class PID(object):
         self.max = mx
 
         self.int_val = self.last_error = 0.
-        self.last_t = time.time() / 1000000000.
 
     def reset(self):
         self.int_val = 0.0
-        self.last_t = time.time() / 1000000000.
 
-    def step(self, error):
-        t = time.time() / 1000000000.
-        dt = t - self.last_t
-        self.last_t = t
+    def step(self, error, sample_time):
 
-        integral = self.int_val + error * dt;
-        derivative = (error - self.last_error) / dt;
+        integral = self.int_val + error * sample_time;
+        derivative = (error - self.last_error) / sample_time;
 
         val = self.kp * error + self.ki * integral + self.kd * derivative;
 

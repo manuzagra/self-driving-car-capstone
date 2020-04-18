@@ -73,7 +73,7 @@ class WaypointUpdater(object):
         rospy.wait_for_message('/base_waypoints', Lane)
         rospy.wait_for_message('/current_pose', PoseStamped)
 
-        r = rospy.Rate(50)
+        r = rospy.Rate(20)
         while not rospy.is_shutdown():
             next_wp_idx = self.next_waypoint_index()
             lane = self.get_lane(next_wp_idx, next_wp_idx+LOOKAHEAD_WPS)
