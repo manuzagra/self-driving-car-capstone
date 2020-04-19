@@ -56,7 +56,7 @@ class WaypointUpdater(object):
         rospy.wait_for_message('/current_pose', PoseStamped)
 
         # TODO only for test, delete this subscriber
-        rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_test_cb)  # teest only
+        # rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_test_cb)  # teest only
 
         self.loop()  # program will stay here forever
 
@@ -99,7 +99,7 @@ class WaypointUpdater(object):
         while not rospy.is_shutdown():
             next_wp_idx = self.next_waypoint_index()
             lane = self.get_lane(next_wp_idx, next_wp_idx+LOOKAHEAD_WPS)
-            if self.next_stop_idx != -1:
+            if next_wp_idx < self.next_stop_idx < next_wp_idx+LOOKAHEAD_WPS:
                 lane = self.decelerate_waypoints(lane, self.next_stop_idx-next_wp_idx)
             self.final_waypoints_pub.publish(lane)
             r.sleep()

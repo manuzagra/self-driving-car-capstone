@@ -41,7 +41,7 @@ class Controller(object):
         
         throttle = vel_control
         brake = 0.
-        if vel_control < 0.1 and error_vel < 0:
+        if vel_control < -0.1 and error_vel < 0:
             throttle = 0
             brake = abs(vel_control) * self.vehicle_mass * self.wheel_radius
         elif reference.linear.x < 0.0001 and measured.linear.x < 0.1:
