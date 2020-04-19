@@ -41,7 +41,7 @@ class WaypointUpdater(object):
 
         ##### ROS stuff
         rospy.init_node('waypoint_updater')
-        
+
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -54,14 +54,15 @@ class WaypointUpdater(object):
         # do not run enything till the moment we have messages
         rospy.wait_for_message('/base_waypoints', Lane)
         rospy.wait_for_message('/current_pose', PoseStamped)
-        
+
+        # TODO only for test, delete this subscriber
         rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_test_cb)  # teest only
-        
+
         self.loop()  # program will stay here forever
 
     def pose_cb(self, msg):
         self.pose = msg
-        
+
     def velocity_cb(self, msg):
         self.speed = msg.twist.linear.x
 
@@ -72,6 +73,7 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         self.next_stop_idx = msg.data
 
+    # TODO only for test, delete this method
     def traffic_test_cb(self, msg):
         self.stops_idx = []
         for tl in msg.lights:
@@ -79,10 +81,10 @@ class WaypointUpdater(object):
                 x = tl.pose.pose.position.x
                 y = tl.pose.pose.position.y
                 self.stops_idx.append(self.base_waypoints_2d_tree.query([x, y], 1)[1])
-                
+
         current_idx = self.next_waypoint_index()
         stops_in_range = [stop_idx for stop_idx in self.stops_idx if current_idx < stop_idx < current_idx+LOOKAHEAD_WPS]
-        
+
         if len(stops_in_range):
             self.next_stop_idx = stops_in_range[0]
         else:
@@ -134,27 +136,17 @@ class WaypointUpdater(object):
         lane.waypoints = [Waypoint()] * (to_idx-from_idx)
         lane.waypoints = self.base_waypoints.waypoints[from_idx:to_idx]
         return lane
-    
+
     def decelerate_waypoints(self, lane, stop_idx):
         l = copy.deepcopy(lane)
-        
-        if 0:
-            print('stop_idx: ', stop_idx)
-            inc = 0.8
-            vel_ini = (stop_idx-30) * inc
-            for idx, wp in enumerate(l.waypoints):
-                vel = max(vel_ini-idx*inc, 0)
-                wp.twist.twist.linear.x = min(wp.twist.twist.linear.x, vel)
-        
-        if 1:
-            max_decel = 5
-            for idx, wp in enumerate(l.waypoints):
-                if idx < stop_idx:
-                    dist = max(0, self.distance(l.waypoints, idx, stop_idx) - 20)
-                    vel = math.sqrt(2*dist*max_decel)
-                    wp.twist.twist.linear.x = min(vel, wp.twist.twist.linear.x)
-                else:
-                    wp.twist.twist.linear.x = 0.
+        max_decel = 5
+        for idx, wp in enumerate(l.waypoints):
+            if idx < stop_idx:
+                dist = max(0, self.distance(l.waypoints, idx, stop_idx) - 20)
+                vel = math.sqrt(2*dist*max_decel)
+                wp.twist.twist.linear.x = min(vel, wp.twist.twist.linear.x)
+            else:
+                wp.twist.twist.linear.x = 0.
         return l
 
     def get_waypoint_velocity(self, waypoint):
