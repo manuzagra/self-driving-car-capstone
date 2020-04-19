@@ -17,7 +17,8 @@ class Controller(object):
                                          kwargs['max_lat_accel'],
                                          kwargs['max_steer_angle'])
 
-        self.low_pass_filter = LowPassFilter(kwargs['tau'], kwargs['ts'])
+        self.steer_low_pass_filter = LowPassFilter(kwargs['tau'], kwargs['ts'])
+        self.speed_low_pass_filter = LowPassFilter(kwargs['tau'], kwargs['ts'])
 
         self.vehicle_mass = kwargs['vehicle_mass']
         self.wheel_radius = kwargs['wheel_radius']
@@ -25,7 +26,8 @@ class Controller(object):
 
     def reset(self):
         self.pid.reset()
-        self.low_pass_filter.reset()
+        self.steer_low_pass_filter.reset()
+        self.speed_low_pass_filter.reset()
 
     def control(self, reference, measured):
         # dt
@@ -35,7 +37,8 @@ class Controller(object):
         # vel error
         error_vel = reference.linear.x - measured.linear.x
         vel_control = self.pid.step(error_vel, dt)
-
+        vel_control = self.speed_low_pass_filter.filt(vel_control)
+        
         throttle = vel_control
         brake = 0.
         if vel_control < 0.1 and error_vel < 0:
@@ -44,9 +47,9 @@ class Controller(object):
         elif reference.linear.x < 0.0001 and measured.linear.x < 0.1:
             throttle = 0
             brake = 700
-
-
-
+            
+        
+        
         steer = self.yaw_control.get_steering(reference.linear.x, reference.angular.z, measured.linear.x)
-        steer = self.low_pass_filter.filt(steer)
+        steer = self.steer_low_pass_filter.filt(steer)
         return throttle, brake, steer

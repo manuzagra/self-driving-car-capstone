@@ -48,11 +48,11 @@ class DBWNode(object):
 
         # Controller
         # numbers are invented
-        controller_params = {'kp': 1, 'ki': 0.001, 'kd': 1.5,
+        controller_params = {'kp': 1.5, 'ki': 0.003, 'kd': 3.5,
                              'wheel_base': wheel_base,
                              'wheel_radius': wheel_radius,
                              'steer_ratio': steer_ratio,
-                             'min_speed': 10,
+                             'min_speed': 0.1,
                              'max_lat_accel': max_lat_accel,
                              'max_steer_angle': max_steer_angle,
                              'tau': 0.5, 'ts': 0.02,
@@ -99,15 +99,6 @@ class DBWNode(object):
             if self.dbw_enabled:
                throttle, brake, steer = self.controller.control(self.twist_cmd, self.last_velocity)
                self.publish(throttle, brake, steer)
-
-               print('---------------------')
-               print(self.twist_cmd)
-               print(self.last_velocity)
-               print('---------------------')
-               print(throttle)
-               print(brake)
-               print(steer)
-               print('---------------------')
             else:
                self.controller.reset()
             rate.sleep()
